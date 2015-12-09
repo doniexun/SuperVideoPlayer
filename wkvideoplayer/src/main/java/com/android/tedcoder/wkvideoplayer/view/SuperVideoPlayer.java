@@ -30,20 +30,14 @@ import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.RelativeLayout;
-import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.VideoView;
 
 import com.android.tedcoder.wkvideoplayer.R;
-import com.android.tedcoder.wkvideoplayer.dlna.engine.DLNAContainer;
-import com.android.tedcoder.wkvideoplayer.dlna.engine.MultiPointController;
-import com.android.tedcoder.wkvideoplayer.dlna.inter.IController;
 import com.android.tedcoder.wkvideoplayer.model.Video;
 import com.android.tedcoder.wkvideoplayer.model.VideoUrl;
 
-import org.cybergarage.upnp.Device;
-
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -55,27 +49,20 @@ public class SuperVideoPlayer extends RelativeLayout {
 
     private final int MSG_HIDE_CONTROLLER = 10;
     private final int MSG_UPDATE_PLAY_TIME = 11;
-    private final int MSG_PLAY_ON_TV_RESULT = 12;
-    private final int MSG_EXIT_FORM_TV_RESULT = 13;
     private MediaController.PageType mCurrPageType = MediaController.PageType.SHRINK;//当前是横屏还是竖屏
 
     private Context mContext;
-    private SuperVideoView mSuperVideoView;
+    private VideoView mVideoView;
     private MediaController mMediaController;
     private Timer mUpdateTimer;
     private VideoPlayCallbackImpl mVideoPlayCallback;
 
     private View mProgressBarView;
     private View mCloseBtnView;
-    private View mTvBtnView;
-    private View mDLNARootLayout;
 
     private ArrayList<Video> mAllVideo;
     private Video mNowPlayVideo;
 
-    private List<Device> mDevices;
-    private IController mController;
-    private Device mSelectDevice;
     //是否自动隐藏控制栏
     private boolean mAutoHideController = true;
 
@@ -87,35 +74,16 @@ public class SuperVideoPlayer extends RelativeLayout {
                 updatePlayProgress();
             } else if (msg.what == MSG_HIDE_CONTROLLER) {
                 showOrHideController();
-            } else if (msg.what == MSG_PLAY_ON_TV_RESULT) {
-                shareToTvResult(msg);
-            } else if (msg.what == MSG_EXIT_FORM_TV_RESULT) {
-                exitFromTvResult(msg);
             }
             return false;
         }
     });
-
-    /**
-     * 可推送设备列表改变的监听回调
-     */
-    @SuppressWarnings("unused")
-    private DLNAContainer.DeviceChangeListener mDeviceChangeListener = new DLNAContainer.DeviceChangeListener() {
-        @Override
-        public void onDeviceChange(Device device) {
-
-        }
-    };
 
     private View.OnClickListener mOnClickListener = new OnClickListener() {
         @Override
         public void onClick(View view) {
             if (view.getId() == R.id.video_close_view) {
                 mVideoPlayCallback.onCloseVideo();
-            } else if (view.getId() == R.id.video_share_tv_view) {
-                shareToTv();
-            } else if (view.getId() == R.id.txt_dlna_exit) {
-                goOnPlayAtLocal();
             }
         }
     };
@@ -142,7 +110,6 @@ public class SuperVideoPlayer extends RelativeLayout {
             if (selectVideo.equal(mNowPlayVideo)) return;
             mNowPlayVideo = selectVideo;
             mNowPlayVideo.setPlayUrl(0);
-            mMediaController.initPlayVideo(mNowPlayVideo);
             loadAndPlay(mNowPlayVideo.getPlayUrl(), 0);
         }
 
@@ -156,7 +123,7 @@ public class SuperVideoPlayer extends RelativeLayout {
 
         @Override
         public void onPlayTurn() {
-            if (mSuperVideoView.isPlaying()) {
+            if (mVideoView.isPlaying()) {
                 pausePlay(true);
             } else {
                 goOnPlay();
@@ -175,8 +142,8 @@ public class SuperVideoPlayer extends RelativeLayout {
             } else if (state.equals(MediaController.ProgressState.STOP)) {
                 resetHideTimer();
             } else {
-                int time = progress * mSuperVideoView.getDuration() / 100;
-                mSuperVideoView.seekTo(time);
+                int time = progress * mVideoView.getDuration() / 100;
+                mVideoView.seekTo(time);
                 updatePlayTime();
             }
         }
@@ -191,7 +158,6 @@ public class SuperVideoPlayer extends RelativeLayout {
                     if (what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
                         mProgressBarView.setVisibility(View.GONE);
                         setCloseButton(true);
-                        initDLNAInfo();
                         return true;
                     }
                     return false;
@@ -206,7 +172,7 @@ public class SuperVideoPlayer extends RelativeLayout {
         public void onCompletion(MediaPlayer mediaPlayer) {
             stopUpdateTimer();
             stopHideTimer(true);
-            mMediaController.playFinish(mSuperVideoView.getDuration());
+            mMediaController.playFinish(mVideoView.getDuration());
             mVideoPlayCallback.onPlayFinish();
             Toast.makeText(mContext, "视频播放完成", Toast.LENGTH_SHORT).show();
         }
@@ -221,12 +187,12 @@ public class SuperVideoPlayer extends RelativeLayout {
      */
     @SuppressWarnings("unused")
     public void setSupportPlayOnSurfaceView() {
-        mSuperVideoView.setZOrderMediaOverlay(true);
+        mVideoView.setZOrderMediaOverlay(true);
     }
 
     @SuppressWarnings("unused")
-    public SuperVideoView getSuperVideoView() {
-        return mSuperVideoView;
+    public VideoView getSuperVideoView() {
+        return mVideoView;
     }
 
     public void setPageType(MediaController.PageType pageType) {
@@ -295,7 +261,7 @@ public class SuperVideoPlayer extends RelativeLayout {
      * @param selectFormat 指定的格式
      * @param seekTime 开始进度
      */
-    public void loadMultipleVideo(ArrayList<Video> allVideo, int selectVideo, int selectFormat, int seekTime) {
+    public void loadMultipleVideo(Video video, int seekTime) {
         if (null == allVideo || allVideo.size() == 0) {
             Toast.makeText(mContext, "视频列表为空", Toast.LENGTH_SHORT).show();
             return;
@@ -304,8 +270,6 @@ public class SuperVideoPlayer extends RelativeLayout {
         mAllVideo.addAll(allVideo);
         mNowPlayVideo = mAllVideo.get(selectVideo);
         mNowPlayVideo.setPlayUrl(selectFormat);
-        mMediaController.initVideoList(mAllVideo);
-        mMediaController.initPlayVideo(mNowPlayVideo);
         loadAndPlay(mNowPlayVideo.getPlayUrl(), seekTime);
     }
 
@@ -315,7 +279,7 @@ public class SuperVideoPlayer extends RelativeLayout {
      * @param isShowController 是否显示控制条
      */
     public void pausePlay(boolean isShowController) {
-        mSuperVideoView.pause();
+        mVideoView.pause();
         mMediaController.setPlayState(MediaController.PlayState.PAUSE);
         stopHideTimer(isShowController);
     }
@@ -324,7 +288,7 @@ public class SuperVideoPlayer extends RelativeLayout {
      * 继续播放
      */
     public void goOnPlay() {
-        mSuperVideoView.start();
+        mVideoView.start();
         mMediaController.setPlayState(MediaController.PlayState.PLAY);
         resetHideTimer();
         resetUpdateTimer();
@@ -337,18 +301,9 @@ public class SuperVideoPlayer extends RelativeLayout {
         mMediaController.setPlayState(MediaController.PlayState.PAUSE);
         stopHideTimer(true);
         stopUpdateTimer();
-        mSuperVideoView.pause();
-        mSuperVideoView.stopPlayback();
-        mSuperVideoView.setVisibility(GONE);
-    }
-
-    /***
-     * 获取支持的DLNA设备
-     *
-     * @return DLNA设备列表
-     */
-    public List<Device> getDevices() {
-        return mDevices;
+        mVideoView.pause();
+        mVideoView.stopPlayback();
+        mVideoView.setVisibility(GONE);
     }
 
     public boolean isAutoHideController() {
@@ -377,44 +332,21 @@ public class SuperVideoPlayer extends RelativeLayout {
     private void initView(Context context) {
         mContext = context;
         View.inflate(context, R.layout.super_vodeo_player_layout, this);
-        mSuperVideoView = (SuperVideoView) findViewById(R.id.video_view);
+        mVideoView = (VideoView) findViewById(R.id.video_view);
         mMediaController = (MediaController) findViewById(R.id.controller);
-        mProgressBarView = findViewById(R.id.progressbar);
+        mProgressBarView = findViewById(R.id.progressbar);//加载中的那个圆圈
         mCloseBtnView = findViewById(R.id.video_close_view);
-        mTvBtnView = findViewById(R.id.video_share_tv_view);
-        mDLNARootLayout = findViewById(R.id.rel_dlna_root_layout);
 
         mMediaController.setMediaControl(mMediaControl);
-        mSuperVideoView.setOnTouchListener(mOnTouchVideoListener);
+        mVideoView.setOnTouchListener(mOnTouchVideoListener);
 
-        setDLNAButton(false);
         setCloseButton(false);
-        mDLNARootLayout.setVisibility(GONE);
         showProgressView(false);
 
-        mDLNARootLayout.setOnClickListener(mOnClickListener);
-        mDLNARootLayout.findViewById(R.id.txt_dlna_exit).setOnClickListener(mOnClickListener);
         mCloseBtnView.setOnClickListener(mOnClickListener);
-        mTvBtnView.setOnClickListener(mOnClickListener);
         mProgressBarView.setOnClickListener(mOnClickListener);
 
         mAllVideo = new ArrayList<>();
-    }
-
-    /**
-     * 检测DLNA信息，如果有支持的设备，显示按钮
-     */
-    private void initDLNAInfo() {
-        mDevices = DLNAContainer.getInstance().getDevices();
-        setController(new MultiPointController());
-        setDLNAButton(mDevices.size() > 0);
-    }
-
-    /**
-     * 显示DLNA可以推送的按钮
-     */
-    private void setDLNAButton(boolean isShow) {
-        mTvBtnView.setVisibility(isShow ? VISIBLE : INVISIBLE);
     }
 
     /**
@@ -430,8 +362,8 @@ public class SuperVideoPlayer extends RelativeLayout {
      * 更换清晰度地址时，续播
      */
     private void playVideoAtLastPos() {
-        int playTime = mSuperVideoView.getCurrentPosition();
-        mSuperVideoView.stopPlayback();
+        int playTime = mVideoView.getCurrentPosition();
+        mVideoView.stopPlayback();
         loadAndPlay(mNowPlayVideo.getPlayUrl(), playTime);
     }
 
@@ -447,14 +379,14 @@ public class SuperVideoPlayer extends RelativeLayout {
             Log.e("TAG", "videoUrl should not be null");
             return;
         }
-        mSuperVideoView.setOnPreparedListener(mOnPreparedListener);
+        mVideoView.setOnPreparedListener(mOnPreparedListener);
         if (videoUrl.isOnlineVideo()) {
-            mSuperVideoView.setVideoPath(videoUrl.getFormatUrl());
+            mVideoView.setVideoPath(videoUrl.getFormatUrl());
         } else {
             Uri uri = Uri.parse(videoUrl.getFormatUrl());
-            mSuperVideoView.setVideoURI(uri);
+            mVideoView.setVideoURI(uri);
         }
-        mSuperVideoView.setVisibility(VISIBLE);
+        mVideoView.setVisibility(VISIBLE);
         startPlayVideo(seekTime);
     }
 
@@ -465,10 +397,10 @@ public class SuperVideoPlayer extends RelativeLayout {
     private void startPlayVideo(int seekTime) {
         if (null == mUpdateTimer) resetUpdateTimer();
         resetHideTimer();
-        mSuperVideoView.setOnCompletionListener(mOnCompletionListener);
-        mSuperVideoView.start();
+        mVideoView.setOnCompletionListener(mOnCompletionListener);
+        mVideoView.start();
         if (seekTime > 0) {
-            mSuperVideoView.seekTo(seekTime);
+            mVideoView.seekTo(seekTime);
         }
         mMediaController.setPlayState(MediaController.PlayState.PLAY);
     }
@@ -477,8 +409,8 @@ public class SuperVideoPlayer extends RelativeLayout {
      * 更新播放的进度时间
      */
     private void updatePlayTime() {
-        int allTime = mSuperVideoView.getDuration();
-        int playTime = mSuperVideoView.getCurrentPosition();
+        int allTime = mVideoView.getDuration();
+        int playTime = mVideoView.getCurrentPosition();
         mMediaController.setPlayProgressTxt(playTime, allTime);
     }
 
@@ -486,9 +418,9 @@ public class SuperVideoPlayer extends RelativeLayout {
      * 更新播放进度条
      */
     private void updatePlayProgress() {
-        int allTime = mSuperVideoView.getDuration();
-        int playTime = mSuperVideoView.getCurrentPosition();
-        int loadProgress = mSuperVideoView.getBufferPercentage();
+        int allTime = mVideoView.getDuration();
+        int playTime = mVideoView.getCurrentPosition();
+        int loadProgress = mVideoView.getBufferPercentage();
         int progress = playTime * 100 / allTime;
         mMediaController.setProgressBar(progress, loadProgress);
     }
@@ -507,11 +439,7 @@ public class SuperVideoPlayer extends RelativeLayout {
         }
     }
 
-    /***
-     *
-     */
     private void showOrHideController() {
-        mMediaController.closeAllSwitchList();
         if (mMediaController.getVisibility() == View.VISIBLE) {
             Animation animation = AnimationUtils.loadAnimation(mContext,
                     R.anim.anim_exit_from_bottom);
@@ -567,103 +495,6 @@ public class SuperVideoPlayer extends RelativeLayout {
             mUpdateTimer.cancel();
             mUpdateTimer = null;
         }
-    }
-
-    private void setController(IController controller) {
-        mController = controller;
-    }
-
-    private void shareToTv() {
-        Toast.makeText(mContext, "开始连接电视中", Toast.LENGTH_SHORT).show();
-        showProgressView(true);
-        DLNAContainer.getInstance().setSelectedDevice(mDevices.get(0));
-        mSelectDevice = DLNAContainer.getInstance().getSelectedDevice();
-        setController(new MultiPointController());
-        if (mController == null || DLNAContainer.getInstance().getSelectedDevice() == null) {
-            Toast.makeText(mContext, "数据异常", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        playVideoOnTv(mNowPlayVideo.getPlayUrl().getFormatUrl());
-    }
-
-
-    /**
-     * 处理电视播放的结果，是否成功
-     *
-     * @param message message
-     */
-    private void shareToTvResult(Message message) {
-        boolean isSuccess = message.arg1 == 1;
-        if (isSuccess) {
-            showDLNAController();
-            setDLNAButton(false);
-            setCloseButton(false);
-            pausePlay(false);
-            mProgressBarView.setVisibility(View.GONE);
-        } else {
-            mDLNARootLayout.setVisibility(GONE);
-            Toast.makeText(mContext, "推送到电视播放失败了", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    /**
-     * 从电视播放退出的结果
-     *
-     * @param message message
-     */
-    private void exitFromTvResult(Message message) {
-        boolean isSuccess = message.arg1 == 1;
-        mDLNARootLayout.setVisibility(GONE);
-        initDLNAInfo();
-        playVideoAtLastPos();
-        if (!isSuccess) {
-            Toast.makeText(mContext, "电视播放退出失败，请手动退出", Toast.LENGTH_SHORT).show();
-        }
-        mProgressBarView.setVisibility(GONE);
-    }
-
-    /**
-     * 显示推送视频播放控制页面
-     */
-    private void showDLNAController() {
-        String name = DLNAContainer.getInstance().getSelectedDevice().getFriendlyName();
-        String title = mContext.getResources().getString(R.string.dlna_device_title, TextUtils.isEmpty(name) ? "您的电视" : name);
-        mDLNARootLayout.setVisibility(VISIBLE);
-        ((TextView) mDLNARootLayout.findViewById(R.id.txt_dlna_title)).setText(title);
-    }
-
-    /**
-     * Start to play the video.
-     *
-     * @param path The video path.
-     */
-    private synchronized void playVideoOnTv(final String path) {
-        new Thread() {
-            public void run() {
-                final boolean isSuccess = mController.play(mSelectDevice, path);
-                Message message = new Message();
-                message.what = MSG_PLAY_ON_TV_RESULT;
-                message.arg1 = isSuccess ? 1 : 0;
-                mHandler.sendMessage(message);
-            }
-        }.start();
-    }
-
-    /**
-     * 继续在本地播放
-     */
-    private synchronized void goOnPlayAtLocal() {
-        showProgressView(true);
-        new Thread() {
-            @Override
-            public void run() {
-                final boolean isSuccess = mController.stop(mSelectDevice);
-                Message message = new Message();
-                message.what = MSG_EXIT_FORM_TV_RESULT;
-                message.arg1 = isSuccess ? 1 : 0;
-                mHandler.sendMessage(message);
-            }
-        }.start();
     }
 
     private class AnimationImp implements Animation.AnimationListener {

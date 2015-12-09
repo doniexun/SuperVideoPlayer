@@ -1,6 +1,5 @@
 package com.android.tedcoder.androidvideoplayer;
 
-import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.os.Bundle;
@@ -8,8 +7,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.view.WindowManager;
 
-import com.android.tedcoder.wkvideoplayer.dlna.engine.DLNAContainer;
-import com.android.tedcoder.wkvideoplayer.dlna.service.DLNAService;
 import com.android.tedcoder.wkvideoplayer.model.Video;
 import com.android.tedcoder.wkvideoplayer.model.VideoUrl;
 import com.android.tedcoder.wkvideoplayer.util.DensityUtil;
@@ -91,12 +88,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mSuperVideoPlayer.loadMultipleVideo(videoArrayList,0,0,0);
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        stopDLNAService();
-    }
-
     /***
      * 旋转屏幕之后回调
      *
@@ -138,7 +129,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mPlayBtnView = findViewById(R.id.play_btn);
         mPlayBtnView.setOnClickListener(this);
         mSuperVideoPlayer.setVideoPlayCallback(mVideoPlayCallback);
-        startDLNAService();
     }
 
     /***
@@ -151,17 +141,4 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    //启动服务
-    private void startDLNAService() {
-        // Clear the device container.
-        DLNAContainer.getInstance().clear();
-        Intent intent = new Intent(getApplicationContext(), DLNAService.class);
-        startService(intent);
-    }
-
-    //停止服务
-    private void stopDLNAService() {
-        Intent intent = new Intent(getApplicationContext(), DLNAService.class);
-        stopService(intent);
-    }
 }
