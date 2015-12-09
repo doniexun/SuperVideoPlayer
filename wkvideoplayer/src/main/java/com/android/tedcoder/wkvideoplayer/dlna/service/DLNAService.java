@@ -35,7 +35,7 @@ import org.cybergarage.upnp.ControlPoint;
 
 /**
  * The service to search the DLNA Device in background all the time.
- * 
+ * 总是在后台搜索DLNA设备的Service
  * @author CharonChui
  * 
  */

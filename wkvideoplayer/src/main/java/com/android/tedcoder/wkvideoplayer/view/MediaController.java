@@ -98,7 +98,7 @@ public class MediaController extends FrameLayout implements SeekBar.OnSeekBarCha
 
     public void initPlayVideo(Video video) {
         ArrayList<String> format = new ArrayList<>();
-        for (VideoUrl url : video.getVideoUrl()) {
+        for (VideoUrl url : video.getVideoUrlList()) {
             format.add(url.getFormatName());
         }
         mVideoFormatSwitcher.initData(format);

@@ -25,7 +25,7 @@ import java.util.ArrayList;
  */
 public class Video {
     private String mVideoName;//视频名称 如房源视频、小区视频
-    private ArrayList<VideoUrl> mVideoUrl;//视频的地址列表
+    private ArrayList<VideoUrl> mVideoUrlList;//视频的地址列表
 
     /***************请看注释***************************/
     private VideoUrl mPlayUrl;//当前正在播放的地址。 外界不用传
@@ -38,12 +38,12 @@ public class Video {
         mVideoName = videoName;
     }
 
-    public ArrayList<VideoUrl> getVideoUrl() {
-        return mVideoUrl;
+    public ArrayList<VideoUrl> getVideoUrlList() {
+        return mVideoUrlList;
     }
 
-    public void setVideoUrl(ArrayList<VideoUrl> videoUrl) {
-        mVideoUrl = videoUrl;
+    public void setVideoUrlList(ArrayList<VideoUrl> videoUrl) {
+        mVideoUrlList = videoUrl;
     }
 
     public VideoUrl getPlayUrl() {
@@ -55,8 +55,8 @@ public class Video {
     }
 
     public void setPlayUrl(int position){
-        if(position < 0 || position >= mVideoUrl.size())return;
-        setPlayUrl(mVideoUrl.get(position));
+        if(position < 0 || position >= mVideoUrlList.size())return;
+        setPlayUrl(mVideoUrlList.get(position));
     }
 
     public boolean equal(Video video){

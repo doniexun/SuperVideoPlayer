@@ -23,6 +23,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private SuperVideoPlayer mSuperVideoPlayer;
     private View mPlayBtnView;
 
+    /**
+     * 播放器的回调函数
+     */
     private SuperVideoPlayer.VideoPlayCallbackImpl mVideoPlayCallback = new SuperVideoPlayer.VideoPlayCallbackImpl() {
         @Override
         public void onCloseVideo() {
@@ -66,7 +69,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         arrayList1.add(videoUrl1);
         arrayList1.add(videoUrl2);
         video.setVideoName("测试视频一");
-        video.setVideoUrl(arrayList1);
+        video.setVideoUrlList(arrayList1);
 
         Video video2 = new Video();
         VideoUrl videoUrl3 = new VideoUrl();
@@ -79,7 +82,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         arrayList2.add(videoUrl3);
         arrayList2.add(videoUrl4);
         video2.setVideoName("测试视频二");
-        video2.setVideoUrl(arrayList2);
+        video2.setVideoUrlList(arrayList2);
 
         ArrayList<Video> videoArrayList = new ArrayList<>();
         videoArrayList.add(video);
@@ -148,6 +151,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    //启动服务
     private void startDLNAService() {
         // Clear the device container.
         DLNAContainer.getInstance().clear();
@@ -155,6 +159,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         startService(intent);
     }
 
+    //停止服务
     private void stopDLNAService() {
         Intent intent = new Intent(getApplicationContext(), DLNAService.class);
         stopService(intent);

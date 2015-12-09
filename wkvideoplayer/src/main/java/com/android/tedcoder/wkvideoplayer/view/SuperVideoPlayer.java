@@ -148,7 +148,7 @@ public class SuperVideoPlayer extends RelativeLayout {
 
         @Override
         public void onSelectFormat(int position) {
-            VideoUrl videoUrl = mNowPlayVideo.getVideoUrl().get(position);
+            VideoUrl videoUrl = mNowPlayVideo.getVideoUrlList().get(position);
             if (mNowPlayVideo.getPlayUrl().equal(videoUrl)) return;
             mNowPlayVideo.setPlayUrl(position);
             playVideoAtLastPos();
@@ -256,7 +256,7 @@ public class SuperVideoPlayer extends RelativeLayout {
         Video video = new Video();
         ArrayList<VideoUrl> videoUrls = new ArrayList<>();
         videoUrls.add(videoUrl);
-        video.setVideoUrl(videoUrls);
+        video.setVideoUrlList(videoUrls);
         video.setPlayUrl(0);
 
         mNowPlayVideo = video;
