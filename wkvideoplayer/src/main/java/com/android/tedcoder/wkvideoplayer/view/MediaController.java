@@ -10,12 +10,9 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.android.tedcoder.wkvideoplayer.R;
-import com.android.tedcoder.wkvideoplayer.model.Video;
-import com.android.tedcoder.wkvideoplayer.model.VideoUrl;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 
 /**
@@ -182,17 +179,23 @@ public class MediaController extends FrameLayout implements SeekBar.OnSeekBarCha
 
 
     public interface MediaControlImpl {
+        /**
+         * 点击播放按钮
+         */
         void onPlayTurn();
 
+        /**
+         * 缩放的页面变化
+         */
         void onPageTurn();
 
+        /**
+         * 进度条点击
+         * @param state     进度条状态
+         * @param progress  进度
+         */
         void onProgressTurn(ProgressState state, int progress);
 
-        void onSelectSrc(int position);
-
-        void onSelectFormat(int position);
-
-        void alwaysShowController();
     }
 
 }

@@ -25,10 +25,6 @@
             </intent-filter>
         </activity>
 
-        <service android:name="com.android.tedcoder.wkvideoplayer.dlna.service.DLNAService" >
-
-        </service>
-
     </application>
 
 </manifest>

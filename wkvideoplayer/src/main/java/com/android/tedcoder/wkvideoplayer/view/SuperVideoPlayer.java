@@ -22,9 +22,7 @@ import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
-import android.text.TextUtils;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.Animation;
@@ -34,10 +32,7 @@ import android.widget.Toast;
 import android.widget.VideoView;
 
 import com.android.tedcoder.wkvideoplayer.R;
-import com.android.tedcoder.wkvideoplayer.model.Video;
-import com.android.tedcoder.wkvideoplayer.model.VideoUrl;
 
-import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -47,21 +42,18 @@ import java.util.TimerTask;
  */
 public class SuperVideoPlayer extends RelativeLayout {
 
-    private final int MSG_HIDE_CONTROLLER = 10;
-    private final int MSG_UPDATE_PLAY_TIME = 11;
+    private final int MSG_HIDE_CONTROLLER = 10;//隐藏控制器
+    private final int MSG_UPDATE_PLAY_TIME = 11;//更新播放时间
     private MediaController.PageType mCurrPageType = MediaController.PageType.SHRINK;//当前是横屏还是竖屏
 
     private Context mContext;
-    private VideoView mVideoView;
-    private MediaController mMediaController;
+    private VideoView mVideoView;//播放器
+    private MediaController mMediaController;//控制器
     private Timer mUpdateTimer;
-    private VideoPlayCallbackImpl mVideoPlayCallback;
-
-    private View mProgressBarView;
-    private View mCloseBtnView;
-
-    private ArrayList<Video> mAllVideo;
-    private Video mNowPlayVideo;
+    private VideoPlayCallbackImpl mVideoPlayCallback;//回调函数
+    private View mProgressBarView;//加载中按钮
+    private View mCloseBtnView;//关闭按钮
+    private Uri mUri;//网络视频路径
 
     //是否自动隐藏控制栏
     private boolean mAutoHideController = true;
@@ -83,7 +75,7 @@ public class SuperVideoPlayer extends RelativeLayout {
         @Override
         public void onClick(View view) {
             if (view.getId() == R.id.video_close_view) {
-                mVideoPlayCallback.onCloseVideo();
+                mVideoPlayCallback.onCloseVideo();//回调函数的关闭方法
             }
         }
     };
@@ -98,28 +90,8 @@ public class SuperVideoPlayer extends RelativeLayout {
         }
     };
 
+    // 播放器控制条的回调函数
     private MediaController.MediaControlImpl mMediaControl = new MediaController.MediaControlImpl() {
-        @Override
-        public void alwaysShowController() {
-            SuperVideoPlayer.this.alwaysShowController();
-        }
-
-        @Override
-        public void onSelectSrc(int position) {
-            Video selectVideo = mAllVideo.get(position);
-            if (selectVideo.equal(mNowPlayVideo)) return;
-            mNowPlayVideo = selectVideo;
-            mNowPlayVideo.setPlayUrl(0);
-            loadAndPlay(mNowPlayVideo.getPlayUrl(), 0);
-        }
-
-        @Override
-        public void onSelectFormat(int position) {
-            VideoUrl videoUrl = mNowPlayVideo.getVideoUrlList().get(position);
-            if (mNowPlayVideo.getPlayUrl().equal(videoUrl)) return;
-            mNowPlayVideo.setPlayUrl(position);
-            playVideoAtLastPos();
-        }
 
         @Override
         public void onPlayTurn() {
@@ -149,6 +121,7 @@ public class SuperVideoPlayer extends RelativeLayout {
         }
     };
 
+    // 当MediaPlayer准备好后触发该回调
     private MediaPlayer.OnPreparedListener mOnPreparedListener = new MediaPlayer.OnPreparedListener() {
         @Override
         public void onPrepared(MediaPlayer mediaPlayer) {
@@ -167,6 +140,7 @@ public class SuperVideoPlayer extends RelativeLayout {
         }
     };
 
+    // 当MediaPlayer播放完成后触发该回调
     private MediaPlayer.OnCompletionListener mOnCompletionListener = new MediaPlayer.OnCompletionListener() {
         @Override
         public void onCompletion(MediaPlayer mediaPlayer) {
@@ -178,23 +152,14 @@ public class SuperVideoPlayer extends RelativeLayout {
         }
     };
 
+    //set回调方法，实现回调在本类中的实例化
     public void setVideoPlayCallback(VideoPlayCallbackImpl videoPlayCallback) {
         mVideoPlayCallback = videoPlayCallback;
     }
 
     /**
-     * 如果在地图页播放视频，请先调用该接口
+     * 设置页面状态（横屏or竖屏）
      */
-    @SuppressWarnings("unused")
-    public void setSupportPlayOnSurfaceView() {
-        mVideoView.setZOrderMediaOverlay(true);
-    }
-
-    @SuppressWarnings("unused")
-    public VideoView getSuperVideoView() {
-        return mVideoView;
-    }
-
     public void setPageType(MediaController.PageType pageType) {
         mMediaController.setPageType(pageType);
         mCurrPageType = pageType;
@@ -206,71 +171,6 @@ public class SuperVideoPlayer extends RelativeLayout {
     @SuppressWarnings("unused")
     public void forceLandscapeMode() {
         mMediaController.forceLandscapeMode();
-    }
-
-    /***
-     * 播放本地视频 只支持横屏播放
-     *
-     * @param fileUrl fileUrl
-     */
-    @SuppressWarnings("unused")
-    public void loadLocalVideo(String fileUrl) {
-        VideoUrl videoUrl = new VideoUrl();
-        videoUrl.setIsOnlineVideo(false);
-        videoUrl.setFormatUrl(fileUrl);
-        videoUrl.setFormatName("本地视频");
-        Video video = new Video();
-        ArrayList<VideoUrl> videoUrls = new ArrayList<>();
-        videoUrls.add(videoUrl);
-        video.setVideoUrlList(videoUrls);
-        video.setPlayUrl(0);
-
-        mNowPlayVideo = video;
-
-        /***
-         * 初始化控制条的精简模式
-         */
-        mMediaController.initTrimmedMode();
-        loadAndPlay(mNowPlayVideo.getPlayUrl(), 0);
-    }
-
-    /**
-     * 播放多个视频,默认播放第一个视频，第一个格式
-     *
-     * @param allVideo 所有视频
-     */
-    public void loadMultipleVideo(ArrayList<Video> allVideo) {
-        loadMultipleVideo(allVideo, 0, 0);
-    }
-
-    /**
-     * 播放多个视频
-     *
-     * @param allVideo     所有的视频
-     * @param selectVideo  指定的视频
-     * @param selectFormat 指定的格式
-     */
-    public void loadMultipleVideo(ArrayList<Video> allVideo, int selectVideo, int selectFormat) {
-        loadMultipleVideo(allVideo, selectVideo, selectFormat, 0);
-    }
-
-    /***
-     *
-     * @param allVideo     所有的视频
-     * @param selectVideo  指定的视频
-     * @param selectFormat 指定的格式
-     * @param seekTime 开始进度
-     */
-    public void loadMultipleVideo(Video video, int seekTime) {
-        if (null == allVideo || allVideo.size() == 0) {
-            Toast.makeText(mContext, "视频列表为空", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        mAllVideo.clear();
-        mAllVideo.addAll(allVideo);
-        mNowPlayVideo = mAllVideo.get(selectVideo);
-        mNowPlayVideo.setPlayUrl(selectFormat);
-        loadAndPlay(mNowPlayVideo.getPlayUrl(), seekTime);
     }
 
     /**
@@ -306,6 +206,9 @@ public class SuperVideoPlayer extends RelativeLayout {
         mVideoView.setVisibility(GONE);
     }
 
+    /**
+     * 判断是否自动隐藏控制器
+     */
     public boolean isAutoHideController() {
         return mAutoHideController;
     }
@@ -329,9 +232,14 @@ public class SuperVideoPlayer extends RelativeLayout {
         initView(context);
     }
 
+    /**
+     * 初始化View
+     *
+     * @param context
+     */
     private void initView(Context context) {
         mContext = context;
-        View.inflate(context, R.layout.super_vodeo_player_layout, this);
+        View.inflate(context, R.layout.super_vodeo_player_layout, this);//TODO 假如只是将java和Layout结合起来，可以直接这么写。
         mVideoView = (VideoView) findViewById(R.id.video_view);
         mMediaController = (MediaController) findViewById(R.id.controller);
         mProgressBarView = findViewById(R.id.progressbar);//加载中的那个圆圈
@@ -345,8 +253,6 @@ public class SuperVideoPlayer extends RelativeLayout {
 
         mCloseBtnView.setOnClickListener(mOnClickListener);
         mProgressBarView.setOnClickListener(mOnClickListener);
-
-        mAllVideo = new ArrayList<>();
     }
 
     /**
@@ -359,33 +265,14 @@ public class SuperVideoPlayer extends RelativeLayout {
     }
 
     /**
-     * 更换清晰度地址时，续播
-     */
-    private void playVideoAtLastPos() {
-        int playTime = mVideoView.getCurrentPosition();
-        mVideoView.stopPlayback();
-        loadAndPlay(mNowPlayVideo.getPlayUrl(), playTime);
-    }
-
-    /**
      * 加载并开始播放视频
-     *
-     * @param videoUrl videoUrl
      */
-    private void loadAndPlay(VideoUrl videoUrl, int seekTime) {
+    public void loadAndPlay(Uri uri, int seekTime) {
+        mUri = uri;
         showProgressView(seekTime > 0);
         setCloseButton(true);
-        if (TextUtils.isEmpty(videoUrl.getFormatUrl())) {
-            Log.e("TAG", "videoUrl should not be null");
-            return;
-        }
         mVideoView.setOnPreparedListener(mOnPreparedListener);
-        if (videoUrl.isOnlineVideo()) {
-            mVideoView.setVideoPath(videoUrl.getFormatUrl());
-        } else {
-            Uri uri = Uri.parse(videoUrl.getFormatUrl());
-            mVideoView.setVideoURI(uri);
-        }
+        mVideoView.setVideoURI(uri);
         mVideoView.setVisibility(VISIBLE);
         startPlayVideo(seekTime);
     }
@@ -439,6 +326,9 @@ public class SuperVideoPlayer extends RelativeLayout {
         }
     }
 
+    /**
+     * 控制器的显示与隐藏
+     */
     private void showOrHideController() {
         if (mMediaController.getVisibility() == View.VISIBLE) {
             Animation animation = AnimationUtils.loadAnimation(mContext,
@@ -461,7 +351,10 @@ public class SuperVideoPlayer extends RelativeLayout {
         }
     }
 
-    private void alwaysShowController() {
+    /**
+     * 始终显示控制器
+     */
+    public void alwaysShowController() {
         mHandler.removeMessages(MSG_HIDE_CONTROLLER);
         mMediaController.setVisibility(View.VISIBLE);
     }
