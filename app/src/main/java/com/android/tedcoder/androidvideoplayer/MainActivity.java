@@ -11,15 +11,30 @@ import com.android.tedcoder.wkvideoplayer.util.DensityUtil;
 import com.android.tedcoder.wkvideoplayer.view.MediaController;
 import com.android.tedcoder.wkvideoplayer.view.SuperVideoPlayer;
 
+/**
+ * 演示demo
+ */
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     private SuperVideoPlayer mSuperVideoPlayer;
     private View mPlayBtnView;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        mSuperVideoPlayer = (SuperVideoPlayer) findViewById(R.id.video_player_item_1);
+        mPlayBtnView = findViewById(R.id.play_btn);
+        mPlayBtnView.setOnClickListener(this);
+        mSuperVideoPlayer.setVideoPlayCallback(mVideoPlayCallback);
+    }
 
     /**
      * 播放器的回调函数
      */
     private SuperVideoPlayer.VideoPlayCallbackImpl mVideoPlayCallback = new SuperVideoPlayer.VideoPlayCallbackImpl() {
-
+        /**
+         * 播放器关闭按钮回调
+         */
         @Override
         public void onCloseVideo() {
             mSuperVideoPlayer.close();//关闭VideoView
@@ -28,6 +43,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             resetPageToPortrait();
         }
 
+        /**
+         * 播放器横竖屏切换回调
+         */
         @Override
         public void onSwitchPageType() {
             if (getRequestedOrientation() == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) {
@@ -39,6 +57,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }
 
+        /**
+         * 播放完成回调
+         */
         @Override
         public void onPlayFinish() {
 
@@ -84,17 +105,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             mSuperVideoPlayer.getLayoutParams().height = (int) height;
             mSuperVideoPlayer.getLayoutParams().width = (int) width;
         }
-    }
-
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        mSuperVideoPlayer = (SuperVideoPlayer) findViewById(R.id.video_player_item_1);
-        mPlayBtnView = findViewById(R.id.play_btn);
-        mPlayBtnView.setOnClickListener(this);
-        mSuperVideoPlayer.setVideoPlayCallback(mVideoPlayCallback);
     }
 
     /***
